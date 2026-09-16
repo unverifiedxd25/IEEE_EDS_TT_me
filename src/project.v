@@ -5,7 +5,7 @@
 
 `default_nettype none
 
-module tt_um_example (
+tt_um_example user_project (
 `ifdef GL_TEST
     input  wire VPWR,
     input  wire VGND,
