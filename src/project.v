@@ -6,6 +6,10 @@
 `default_nettype none
 
 module tt_um_example (
+`ifdef GL_TEST
+    input  wire VPWR,
+    input  wire VGND,
+`endif
     input  wire       clk,
     input  wire       rst_n,
     input  wire       ena,
