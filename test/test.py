@@ -2,39 +2,93 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import Timer
+
+
+async def set_inputs(dut, A, B, OP):
+    dut.ui_in.value = (OP << 4) | A
+    dut.uio_in.value = B
+
+    await Timer(1, units="ns")
 
 
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_addition(dut):
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
-    cocotb.start_soon(clock.start())
+    await set_inputs(dut, 5, 3, 0)
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
+    result = int(dut.uo_out.value) & 0x0F
 
-    dut._log.info("Test project behavior")
+    assert result == 8, f"Expected 8, got {result}"
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+@cocotb.test()
+async def test_subtraction(dut):
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    await set_inputs(dut, 5, 3, 1)
 
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 2, f"Expected 2, got {result}"
+
+
+@cocotb.test()
+async def test_and(dut):
+
+    await set_inputs(dut, 5, 3, 2)
+
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 1, f"Expected 1, got {result}"
+
+
+@cocotb.test()
+async def test_or(dut):
+
+    await set_inputs(dut, 5, 3, 3)
+
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 7, f"Expected 7, got {result}"
+
+
+@cocotb.test()
+async def test_xor(dut):
+
+    await set_inputs(dut, 5, 3, 4)
+
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 6, f"Expected 6, got {result}"
+
+
+@cocotb.test()
+async def test_not(dut):
+
+    await set_inputs(dut, 5, 0, 5)
+
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 10, f"Expected 10, got {result}"
+
+
+@cocotb.test()
+async def test_left_shift(dut):
+
+    await set_inputs(dut, 5, 0, 6)
+
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 10, f"Expected 10, got {result}"
+
+
+@cocotb.test()
+async def test_right_shift(dut):
+
+    await set_inputs(dut, 8, 0, 7)
+
+    result = int(dut.uo_out.value) & 0x0F
+
+    assert result == 4, f"Expected 4, got {result}"
     # Keep testing the module by changing the input values, waiting for
     # one or more clock cycles, and asserting the expected output values.
