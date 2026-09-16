@@ -5,23 +5,123 @@
 
 `default_nettype none
 
-module tt_um_example (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+module tt_um_example_user_project (
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       ena,
+
+    input  wire [7:0] ui_in,
+    input  wire [7:0] uio_in,
+
+    output wire [7:0] uo_out,
+    output wire [7:0] uio_out,
+    output wire [7:0] uio_oe
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+    // Inputs
+    wire [3:0] A;
+    wire [3:0] B;
+    wire [3:0] OP;
 
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+    assign A  = ui_in[3:0];
+    assign OP = ui_in[7:4];
+    assign B  = uio_in[3:0];
+
+    // Internal signals
+    reg [3:0] result;
+    reg carry;
+    reg overflow;
+
+    reg [4:0] temp;
+
+    // ALU
+    always @(*) begin
+
+        // Default values
+        result   = 4'b0000;
+        carry    = 1'b0;
+        overflow = 1'b0;
+        temp     = 5'b00000;
+
+        case (OP)
+
+            // 0000 = Addition
+            4'b0000: begin
+                temp   = A + B;
+                result = temp[3:0];
+                carry  = temp[4];
+
+                // Signed overflow
+                overflow = (~(A[3] ^ B[3])) &
+                           (result[3] ^ A[3]);
+            end
+
+            // 0001 = Subtraction
+            4'b0001: begin
+                result = A - B;
+
+                // Signed overflow
+                overflow = (A[3] ^ B[3]) &
+                           (result[3] ^ A[3]);
+            end
+
+            // 0010 = AND
+            4'b0010: begin
+                result = A & B;
+            end
+
+            // 0011 = OR
+            4'b0011: begin
+                result = A | B;
+            end
+
+            // 0100 = XOR
+            4'b0100: begin
+                result = A ^ B;
+            end
+
+            // 0101 = NOT A
+            4'b0101: begin
+                result = ~A;
+            end
+
+            // 0110 = Left shift
+            4'b0110: begin
+                result = A << 1;
+            end
+
+            // 0111 = Right shift
+            4'b0111: begin
+                result = A >> 1;
+            end
+
+            // Anything else
+            default: begin
+                result   = 4'b0000;
+                carry    = 1'b0;
+                overflow = 1'b0;
+            end
+
+        endcase
+    end
+
+    // Output result
+    assign uo_out[3:0] = result;
+
+    // Carry flag
+    assign uo_out[4] = carry;
+
+    // Zero flag
+    assign uo_out[5] = (result == 4'b0000);
+
+    // Overflow flag
+    assign uo_out[6] = overflow;
+
+    // Unused output
+    assign uo_out[7] = 1'b0;
+
+    // We are not using the bidirectional outputs
+    assign uio_out = 8'b00000000;
+    assign uio_oe  = 8'b00000000;
 
 endmodule
